@@ -1,7 +1,23 @@
+import sqlite3
+
 from flask import Flask, request, render_template
 
 
 app = Flask(__name__)
+
+
+class Database:
+    def __init__(self, db_name):
+        self.db_name = db_name
+
+    def __enter__(self):
+        self.conn = sqlite3.connect(self.db_name)
+        self.cursor = self.conn.cursor()
+        return self.cursor
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.conn.commit()
+        self.conn.close()
 
 
 #/user
@@ -19,9 +35,16 @@ def get_login():
     if request.method == 'GET':
         return render_template('login.html')
     else:
-        username = request.form['username']
-        userpassword = request.form['userpassword']
-        return f" authorization successfull, {username} {userpassword}"
+        email = request.form['email']
+        #username = request.form['username']
+        password = request.form['password']
+        with Database('fin_tracker_bd.db') as cursor:
+            result = cursor.execute(f"SELECT * FROM user WHERE email = '{email}' and password = '{password}'")
+            data = result.fetchone()
+        if data:
+            return  f"correct user pair"
+        else:
+            return f" wrong user pair"
 
 
 #/register
@@ -30,9 +53,13 @@ def get_register():
     if request.method == 'GET':
         return render_template('register.html')
     else:
-        username = request.form['username']
-        userpassword = request.form['userpassword']
-        return f" account successfully created, {username} {userpassword}"
+        name = request.form['name']
+        surname = request.form['surname']
+        password = request.form['password']
+        email = request.form['email']
+        with Database('fin_tracker_bd.db') as cursor:
+            cursor.execute(f"INSERT INTO user(name, surname, password, email) VALUES ('{name}', '{surname}', '{password}', '{email}')")
+        return f" account successfully created"
 
 
 #/cetegory
