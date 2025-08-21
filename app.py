@@ -1,9 +1,12 @@
 import sqlite3
 
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, session, redirect
 
 
 app = Flask(__name__)
+app.secret_key = 'qwefdgyhdtgfjghkghfk34678'
+SPEND = 1
+INCOME = 2
 
 
 class Database:
@@ -39,9 +42,10 @@ def get_login():
         #username = request.form['username']
         password = request.form['password']
         with Database('fin_tracker_bd.db') as cursor:
-            result = cursor.execute(f"SELECT * FROM user WHERE email = '{email}' and password = '{password}'")
+            result = cursor.execute(f"SELECT id FROM user WHERE email = '{email}' and password = '{password}'")
             data = result.fetchone()
         if data:
+            session['user_id'] = data[0]
             return  f"correct user pair"
         else:
             return f" wrong user pair"
@@ -75,16 +79,38 @@ def category_list():
 @app.route('/category/<category_id>', methods=['GET', 'PATCH', 'DELETE'])
 def category_detail(category_id):
     if request.method == 'GET':
-        return f" 12, {category_id}"
+        return render_template("one_category.html")
+    else:
+        return "hello"
 
 
 #/income
 @app.route('/income', methods=['GET', 'POST'])
 def get_income():
-    if request.method == 'GET':
-        return 'GET'
+    if 'user_id' in session:
+        if request.method == 'GET':
+            with Database('fin_tracker_bd.db') as cursor:
+                data = cursor.execute(
+                        f"SELECT * FROM 'transaction' WHERE owner = {session['user_id']} and type = {INCOME}")
+                res = data.fetchall()
+                categories = cursor.execute("SELECT category_name FROM category").fetchall()
+                return render_template('dashboard.html',
+                                       transactions=res,
+                                       categories=categories,
+                                       page_type="income")
+        else:
+            with Database('fin_tracker_bd.db') as cursor:
+                t_description = request.form['description']
+                t_category = request.form['category']
+                t_date = request.form['date']
+                t_owner = request.form['user_id']
+                t_type = request.form['type']
+                t_amount = request.form['amount']
+                cursor.execute(f"INSERT INTO 'transaction' (description, category, date, owner, type, amount) "
+                               f"VALUES ('{t_description}', '{t_category}', '{t_date}', '{t_owner}', '{t_type}', '{t_amount}')")
+            return redirect('/income')
     else:
-        return 'POST'
+        return redirect('/login')
 
 
 #/income/<income_id>
@@ -97,10 +123,30 @@ def income_detail(income_id):
 #/spend
 @app.route('/spend', methods=['GET', 'POST'])
 def get_spend():
-    if request.method == 'GET':
-        return 'GET'
+    if 'user_id' in session:
+        if request.method == 'GET':
+            with Database('fin_tracker_bd.db') as cursor:
+                data = cursor.execute(
+                    f"SELECT * FROM 'transaction' WHERE owner = {session['user_id']} and type = {SPEND}")
+                res = data.fetchall()
+                categories = cursor.execute("SELECT category_name FROM category").fetchall()
+                return render_template('dashboard.html',
+                                       transactions=res,
+                                       categories=categories,
+                                       page_type="spend")
+        else:
+            with Database('fin_tracker_bd.db') as cursor:
+                t_description = request.form['description']
+                t_category = request.form['category']
+                t_date = request.form['date']
+                t_owner = request.form['user_id']
+                t_type = request.form['type']
+                t_amount = request.form['amount']
+                cursor.execute(f"INSERT INTO 'transaction' (description, category, date, owner, type, amount) "
+                               f"VALUES ('{t_description}', '{t_category}', '{t_date}', '{t_owner}', '{t_type}', '{t_amount}')")
+            return redirect('/spend')
     else:
-        return 'POST'
+        return redirect('/login')
 
 
 #/spend/<spend_id>
