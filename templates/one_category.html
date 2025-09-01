@@ -5,6 +5,16 @@
     <title>one category</title>
 </head>
 <body>
-
+<form action="/category/{{ category_id }}" method="post">
+    <label for="category_name">category_name:</label><br>
+    <input type="text" id="category_name" name="category_name" value="{{ category_name }}"><br><br>
+    <input type = "submit" value="Submit">
+</form>
+<form action="/category/{{ category_id }}/delete" method="get">
+    <input type="submit" value="Delete category">
+</form>
+{% for one_transaction in transactions %}
+    <p>{{ one_transaction.description }} {{ one_transaction.date }} {{ one_transaction.type }} {{ one_transaction.amount }}</p>
+{% endfor %}
 </body>
 </html>
